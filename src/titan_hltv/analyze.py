@@ -61,27 +61,44 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                 players = []
                 deaths = []
                 hurts = []
+                round_starts = []
                 round_ends = []
                 errors: dict[str, str] = {}
                 schema: dict[str, Any] = {}
+
+                def _schema_for_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
+                    if not rows:
+                        return {"count": 0, "keys": [], "sample": None, "tick_min": None, "tick_max": None}
+                    sample = rows[0]
+                    ticks = []
+                    for r in rows:
+                        t = r.get("tick")
+                        if isinstance(t, int):
+                            ticks.append(t)
+                    return {
+                        "count": len(rows),
+                        "keys": sorted(list(sample.keys())) if isinstance(sample, dict) else [],
+                        "sample": sample,
+                        "tick_min": min(ticks) if ticks else None,
+                        "tick_max": max(ticks) if ticks else None,
+                    }
+
                 for event, target in (
                     ("player_death", "deaths"),
                     ("player_hurt", "hurts"),
+                    ("round_start", "round_starts"),
                     ("round_end", "round_ends"),
                 ):
                     try:
                         rows = parse_event_rows(parser, event)
                         if debug_schema:
-                            sample = rows[0] if rows else None
-                            schema[event] = {
-                                "count": len(rows),
-                                "keys": sorted(list(sample.keys())) if isinstance(sample, dict) else [],
-                                "sample": sample,
-                            }
+                            schema[event] = _schema_for_rows(rows)
                         if target == "deaths":
                             deaths = rows
                         elif target == "hurts":
                             hurts = rows
+                        elif target == "round_starts":
+                            round_starts = rows
                         elif target == "round_ends":
                             round_ends = rows
                     except Exception as e:  # noqa: BLE001
@@ -90,12 +107,7 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                 try:
                     players = parse_players(parser)
                     if debug_schema:
-                        sample = players[0] if players else None
-                        schema["players"] = {
-                            "count": len(players),
-                            "keys": sorted(list(sample.keys())) if isinstance(sample, dict) else [],
-                            "sample": sample,
-                        }
+                        schema["players"] = _schema_for_rows(players)
                 except Exception as e:  # noqa: BLE001
                     errors["players"] = f"{type(e).__name__}: {e}"
 
@@ -108,6 +120,7 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                             players=players,
                             deaths=deaths,
                             hurts=hurts,
+                            round_starts=round_starts,
                             round_ends=round_ends,
                             tickrate=float(tickrate) if tickrate is not None else None,
                         ),
