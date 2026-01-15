@@ -28,6 +28,15 @@ class PlayerAgg:
     late_round_kills: int = 0
 
 
+def _as_int(v: Any) -> int | None:
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        return int(v)
+    except Exception:
+        return None
+
+
 def _steamid(row: dict[str, Any], role: str) -> str | None:
     if role == "attacker":
         return pick(

@@ -21,6 +21,17 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         help="Include event schema samples in output (for parser debugging).",
     )
     p.add_argument(
+        "--max-rounds",
+        type=int,
+        default=0,
+        help="If >0, analyze only first N rounds (faster iteration).",
+    )
+    p.add_argument(
+        "--progress",
+        action="store_true",
+        help="Print progress to stderr while parsing.",
+    )
+    p.add_argument(
         "--out",
         default="-",
         help="Output path. Use '-' for stdout. (default: -)",
@@ -39,7 +50,12 @@ def main(argv: list[str] | None = None) -> int:
     demo_paths = [Path(p).expanduser().resolve() for p in ns.demos]
 
     try:
-        report = analyze_demos(demo_paths, debug_schema=bool(ns.debug_schema))
+        report = analyze_demos(
+            demo_paths,
+            debug_schema=bool(ns.debug_schema),
+            max_rounds=int(ns.max_rounds or 0),
+            progress=bool(ns.progress),
+        )
     except ModuleNotFoundError as e:
         # Typical missing dependency is demoparser2 in Codespaces first run.
         print(

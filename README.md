@@ -23,4 +23,10 @@ Debug parser schema (recommended on first run in Codespaces):
 titan-hltv path/to/match.dem --debug-schema --out report.json
 ```
 
+Faster iteration (first N rounds) + progress:
+
+```bash
+titan-hltv path/to/match.dem --max-rounds 5 --progress --debug-schema --out report.json
+```
+
 Current status: basic metrics (best-effort) + scaffolding for HLTV 3.0-style metrics.
