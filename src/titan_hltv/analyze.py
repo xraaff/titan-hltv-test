@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -15,7 +16,13 @@ class DemoInput:
     size_bytes: int | None
 
 
-def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict[str, Any]:
+def analyze_demos(
+    demo_paths: list[Path],
+    *,
+    debug_schema: bool = False,
+    max_rounds: int = 0,
+    progress: bool = False,
+) -> dict[str, Any]:
     """
     Entry point for demo analysis.
 
@@ -90,6 +97,12 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                     ("round_end", "round_ends"),
                 ):
                     try:
+                        if progress:
+                            print(
+                                f"[titan-hltv] parse {event} ({Path(d.path).name})...",
+                                file=sys.stderr,
+                                flush=True,
+                            )
                         rows = parse_event_rows(parser, event)
                         if debug_schema:
                             schema[event] = _schema_for_rows(rows)
@@ -105,6 +118,8 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                         errors[event] = f"{type(e).__name__}: {e}"
 
                 try:
+                    if progress:
+                        print(f"[titan-hltv] parse players ({Path(d.path).name})...", file=sys.stderr, flush=True)
                     players = parse_players(parser)
                     if debug_schema:
                         schema["players"] = _schema_for_rows(players)
@@ -113,6 +128,8 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
 
                 tickrate = meta.get("tickrate")
                 try:
+                    if progress:
+                        print(f"[titan-hltv] compute metrics ({Path(d.path).name})...", file=sys.stderr, flush=True)
                     per_demo_reports[d.path] = {
                         "errors": errors,
                         "schema": schema if debug_schema else None,
@@ -123,6 +140,7 @@ def analyze_demos(demo_paths: list[Path], *, debug_schema: bool = False) -> dict
                             round_starts=round_starts,
                             round_ends=round_ends,
                             tickrate=float(tickrate) if tickrate is not None else None,
+                            max_rounds=max_rounds,
                         ),
                     }
                 except Exception as e:  # noqa: BLE001
