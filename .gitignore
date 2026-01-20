@@ -201,6 +201,15 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# macOS
+.DS_Store
+
+# Local outputs / artifacts
+output/
+
+# CS2 demo files (keep out of git)
+*.dem
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

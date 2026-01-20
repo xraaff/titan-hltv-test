@@ -95,6 +95,23 @@ def parse_players(parser: Any) -> list[dict[str, Any]]:
     raise RuntimeError(f"Failed to parse players: {last_err}")
 
 
+def parse_ticks_rows(parser: Any, fields: list[str], *, ticks: list[int]) -> list[dict[str, Any]]:
+    """
+    Best-effort tick snapshot extraction across demoparser2 versions.
+    """
+    last_err: Exception | None = None
+    for attempt in (
+        lambda: _try_call(parser, "parse_ticks", fields, ticks=ticks),
+        lambda: _try_call(parser, "parse_ticks", fields, ticks),
+    ):
+        try:
+            table = attempt()
+            return _rows_from_table(table)
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+    raise RuntimeError(f"Failed to parse ticks: {last_err}")
+
+
 def pick(row: dict[str, Any], keys: Iterable[str], default: Any = None) -> Any:
     for k in keys:
         if k in row and row[k] is not None:
@@ -106,6 +123,8 @@ def norm_team(v: Any) -> str | None:
     if v is None:
         return None
     s = str(v).strip().upper()
+    if s in {"0", "NONE", "UNKNOWN", "UNDEFINED"}:
+        return None
     if s in {"CT", "COUNTERTERRORIST", "COUNTER-TERRORIST"}:
         return "CT"
     if s in {"T", "TERRORIST"}:
